@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>비례배분 시뮬레이터</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* 레이아웃: 예상→조작(물건 묶음 나누기 + 막대 모형 + 식)→설명→적용을 세로로, 조작 칸은 그림과 식을 나란히 */
+:root{
+  --bg:#f3f6f4; --surface:#ffffff; --ink:#1d2733; --muted:#5a6672; --line:#d6dfda; --empty:#e9eeeb;
+  --front:#6b47d6; --front-soft:#ece6ff; --back:#d99a06; --back-soft:#fff3d1;
+  --ok:#1d8656; --ok-soft:#e1f4ea; --warn:#b4471a; --warn-soft:#fde9df; --btn:#1d2733; --btn-ink:#ffffff;
+  --display:"Jua","IBM Plex Sans KR",system-ui,sans-serif;
+  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121816; --surface:#1a221f; --ink:#e6ede9; --muted:#9eaba4; --line:#2d3833; --empty:#26302c;
+  --front:#a78bff; --front-soft:#2b2445; --back:#f2c14e; --back-soft:#3a2f12;
+  --ok:#4cc38a; --ok-soft:#173327; --warn:#f08a5d; --warn-soft:#3b2116; --btn:#e6ede9; --btn-ink:#121816; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121816; --surface:#1a221f; --ink:#e6ede9; --muted:#9eaba4; --line:#2d3833; --empty:#26302c;
+  --front:#a78bff; --front-soft:#2b2445; --back:#f2c14e; --back-soft:#3a2f12;
+  --ok:#4cc38a; --ok-soft:#173327; --warn:#f08a5d; --warn-soft:#3b2116; --btn:#e6ede9; --btn-ink:#121816; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:980px;margin:0 auto;display:grid;gap:18px}
+header{display:grid;gap:6px}
+.eyebrow{font-size:13px;letter-spacing:.04em;color:var(--muted)}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,5vw,40px);line-height:1.15;margin:0;text-wrap:balance}
+.goal{margin:0;color:var(--muted);max-width:62ch}
+.steps{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:4px 0 0}
+.steps li{font-size:13px;border:1px solid var(--line);border-radius:999px;padding:3px 12px;background:var(--surface)}
+.steps b{font-family:var(--display);font-weight:400;margin-right:4px}
+section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:14px;min-width:0}
+h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0;display:flex;gap:10px;align-items:center}
+h2 .n{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--bg);font-size:17px}
+p{margin:0}
+.muted{color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 14px;min-height:44px}
+button:hover{border-color:var(--ink)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--front);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.primary{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.label{font-size:13px;color:var(--muted);letter-spacing:.03em}
+.fr{color:var(--front)} .bk{color:var(--back)}
+.grid2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+.panel{border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:12px;min-width:0;align-content:start}
+input[type=number]{font:inherit;font-family:var(--display);font-size:22px;width:80px;padding:6px 8px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);text-align:center}
+.items{display:flex;flex-wrap:wrap;gap:8px}
+.it{width:22px;height:22px;border-radius:50%;background:var(--empty);border:1.5px solid var(--line);display:grid;place-items:center;font-size:10px;color:var(--bg)}
+.it.f{background:var(--front);border-color:var(--front)} .it.b{background:var(--back);border-color:var(--back)}
+.it.left{background:transparent;border:2px dashed var(--warn)}
+.grp{display:inline-flex;flex-wrap:wrap;gap:4px;padding:5px;border:1.5px dashed var(--line);border-radius:12px}
+.grp.new{border:2px solid var(--ink)}
+.grp.rest{border-color:var(--warn)}
+.tape{display:flex;border:2px solid var(--ink);border-radius:8px;overflow:hidden;height:46px}
+.seg{flex:1;display:grid;place-items:center;font-family:var(--display);font-size:16px;border-right:1px solid var(--surface);min-width:0}
+.seg:last-child{border-right:none}
+.seg.f{background:var(--front);color:#fff} .seg.b{background:var(--back);color:#1d2733}
+.tapecap{display:flex;justify-content:space-between;font-size:14px;gap:8px;flex-wrap:wrap}
+.share{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.share div{border-radius:10px;padding:10px;text-align:center}
+.share .o{background:var(--front-soft)} .share .i{background:var(--back-soft)}
+.share b{font-family:var(--display);font-weight:400;font-size:30px;display:block;line-height:1.1;font-variant-numeric:tabular-nums}
+.formula{font-variant-numeric:tabular-nums;font-size:16px;display:grid;gap:4px}
+.badge{display:inline-block;border-radius:999px;padding:4px 12px;font-size:14px;font-weight:700}
+.badge.ok{background:var(--ok-soft);color:var(--ok)} .badge.no{background:var(--warn-soft);color:var(--warn)}
+.note{border-radius:10px;padding:10px 12px;font-size:15px}
+.note.ok{background:var(--ok-soft)} .note.no{background:var(--warn-soft)} .note.info{background:var(--front-soft)}
+.choices{display:grid;gap:8px}
+.choices button{text-align:left}
+.probs{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px}
+.prob{display:grid;gap:8px;border:1px solid var(--line);border-radius:12px;padding:12px}
+.prob .q{font-family:var(--display);font-size:21px}
+.custom{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.custom input{width:68px;font-size:20px}
+footer{font-size:13px;color:var(--muted);text-align:center}
+@media (prefers-reduced-motion:no-preference){.it{transition:background .25s,border-color .25s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a href="index.html" style="font-size:13px;color:var(--muted)">← 앱 목록</a>
+  <div class="eyebrow">수학 6-2 · 4. 비례식과 비례배분 · 8차시 비례배분 · 나눔 장터 기부 물품 나누기</div>
+  <h1>비례배분 시뮬레이터</h1>
+  <p class="goal">전체를 <b>비의 합만큼 한 묶음</b>으로 보고, 한 묶음씩 주어진 비로 나누어 가며 각자의 몫을 찾아요. 그림, 막대 모형, 식이 어떻게 이어지는지 확인해요.</p>
+  <ol class="steps"><li><b>1</b>예상</li><li><b>2</b>조작·관찰</li><li><b>3</b>설명</li><li><b>4</b>적용</li></ol>
+</header>
+
+<section aria-labelledby="h1s">
+  <h2 id="h1s"><span class="n">1</span>먼저 예상해요</h2>
+  <p><b class="fr">지호</b>와 <b class="bk">하은</b>이가 나눔 장터에서 만든 쿠키 <b>21개</b>를 <b>3 : 4</b>로 나누어 가지려고 해요. 지호는 몇 개를 가지게 될까요?</p>
+  <div class="row"><label for="guess" class="muted">지호의 쿠키</label><input type="number" id="guess" min="0" inputmode="numeric"><span>개</span><button type="button" class="primary" id="guess-btn">예상 남기기</button></div>
+  <p class="muted" id="guess-msg">예상을 남긴 다음, 아래에서 한 묶음씩 나누어 확인해 보세요.</p>
+</section>
+
+<section aria-labelledby="h2s">
+  <h2 id="h2s"><span class="n">2</span>조작하고 관찰해요</h2>
+  <div class="row" role="group" aria-label="상황 고르기">
+    <span class="label">상황</span>
+    <button type="button" data-pre="0" aria-pressed="true">쿠키 21개 3 : 4</button>
+    <button type="button" data-pre="1" aria-pressed="false">귤 56상자 3 : 5</button>
+    <button type="button" data-pre="2" aria-pressed="false">배 45개 5 : 4</button>
+    <button type="button" data-pre="3" aria-pressed="false">바둑돌 22개 2 : 3</button>
+  </div>
+  <div class="custom">
+    <span class="label">직접 정하기</span>
+    <label for="cn" class="muted">전체</label><input type="number" id="cn" min="1" max="120" value="21">
+    <label for="cp" class="muted fr">앞</label><input type="number" id="cp" min="1" max="12" value="3">
+    <span>:</span>
+    <label for="cq" class="muted bk">뒤</label><input type="number" id="cq" min="1" max="12" value="4">
+    <button type="button" id="apply-custom">적용</button>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between">
+        <span class="label" id="item-cap"></span>
+        <span class="label" id="round-cap"></span>
+      </div>
+      <div class="items" id="items" aria-live="polite"></div>
+      <div class="row">
+        <button type="button" class="primary" id="step">한 묶음 나누기</button>
+        <button type="button" id="all">끝까지 나누기</button>
+        <button type="button" id="reset">처음부터</button>
+      </div>
+      <span class="label">막대 모형: 전체를 (비의 합)칸으로</span>
+      <div class="tape" id="tape"></div>
+      <div class="tapecap" id="tapecap"></div>
+    </div>
+    <div class="panel" aria-live="polite">
+      <div class="share">
+        <div class="o"><span class="label fr" id="na"></span><b id="sa">?</b></div>
+        <div class="i"><span class="label bk" id="nb"></span><b id="sb">?</b></div>
+      </div>
+      <div class="formula" id="formula"></div>
+      <div class="row" id="checks"></div>
+      <p class="note info" id="explain"></p>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="h3s">
+  <h2 id="h3s"><span class="n">3</span>알게 된 점을 설명해요</h2>
+  <p class="muted">쿠키 21개를 3 : 4로 나눌 때, 지호의 몫을 구하는 바른 방법을 골라요.</p>
+  <div class="choices" role="group" aria-label="방법 고르기">
+    <button type="button" data-say="a">21 × 3/4 로 구한다.</button>
+    <button type="button" data-say="b">비의 합 3 + 4 = 7을 구하고, 21 × 3/7 로 구한다.</button>
+    <button type="button" data-say="c">21을 반으로 나눈 뒤 3개를 더 준다.</button>
+  </div>
+  <p class="note" id="say-msg" hidden></p>
+</section>
+
+<section aria-labelledby="h4s">
+  <h2 id="h4s"><span class="n">4</span>적용해요: 우리 모둠 기부 물품 배분안</h2>
+  <p class="muted">두 몫을 구해 넣으면 합과 비로 검증해 줘요.</p>
+  <div class="probs" id="probs"></div>
+</section>
+
+<footer>학생 이름이나 답을 저장하지 않는 학습용 페이지예요. 수치는 연구회에서 직접 만든 예시예요.</footer>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b]}return a};
+const PRE=[
+  {n:21,p:3,q:4,a:'지호',b:'하은',u:'개',thing:'쿠키'},
+  {n:56,p:3,q:5,a:'가 단체',b:'나 단체',u:'상자',thing:'귤'},
+  {n:45,p:5,q:4,a:'가 단체',b:'나 단체',u:'개',thing:'배'},
+  {n:22,p:2,q:3,a:'앞',b:'뒤',u:'개',thing:'바둑돌'}
+];
+let S={...PRE[0]}, round=0;
+
+function rounds(){return Math.floor(S.n/(S.p+S.q))}
+function render(){
+  const k=S.p+S.q, R=rounds(), rem=S.n-R*k;
+  // 그림
+  let html='';
+  for(let r=0;r<R;r++){
+    let g='';
+    for(let pos=0;pos<k;pos++){ let c=''; if(r<round){ c=pos<S.p?'f':'b'; } g+=`<span class="it ${c}"></span>`; }
+    html+=`<span class="grp${r===round-1?' new':''}">${g}</span>`;
+  }
+  if(rem>0){ let g=''; for(let i=0;i<rem;i++) g+=`<span class="it ${round>=R?'left':''}"></span>`; html+=`<span class="grp rest">${g}</span>`; }
+  $('#items').innerHTML=html;
+  $('#item-cap').textContent=`${S.thing} ${S.n}${S.u} · 한 묶음 = ${S.p} + ${S.q} = ${k}${S.u}`;
+  $('#round-cap').textContent=`나눈 묶음 ${round} / ${R}`;
+  $('#step').disabled=round>=R; $('#all').disabled=round>=R;
+  // 막대 모형
+  const unit=S.n/k, unitTxt=Number.isInteger(unit)?unit:(Math.round(unit*100)/100);
+  $('#tape').innerHTML=Array.from({length:k},(_,i)=>`<div class="seg ${i<S.p?'f':'b'}">${k<=12?unitTxt:''}</div>`).join('');
+  $('#tapecap').innerHTML=`<span class="fr">${S.a}: ${S.p}칸</span><span class="muted">한 칸 = ${S.n} ÷ ${k} = ${unitTxt}</span><span class="bk">${S.b}: ${S.q}칸</span>`;
+  // 몫
+  $('#na').textContent=S.a; $('#nb').textContent=S.b;
+  const gotA=round*S.p, gotB=round*S.q, done=round>=R;
+  $('#sa').textContent=round?`${gotA}${S.u}`:'?'; $('#sb').textContent=round?`${gotB}${S.u}`:'?';
+  const fa=S.n*S.p/k, fb=S.n*S.q/k;
+  $('#formula').innerHTML=done&&rem===0
+    ? `<div><span class="fr">${S.a}</span>: ${S.n} × ${S.p}/(${S.p}+${S.q}) = ${S.n} × ${S.p}/${k} = <b>${fa}</b></div><div><span class="bk">${S.b}</span>: ${S.n} × ${S.q}/(${S.p}+${S.q}) = ${S.n} × ${S.q}/${k} = <b>${fb}</b></div>`
+    : `<div class="muted">한 묶음씩 나누면 지금까지 <b>${round}</b>묶음: ${S.a} ${S.p} × ${round} = ${gotA}, ${S.b} ${S.q} × ${round} = ${gotB}</div>`;
+  const ch=$('#checks');
+  if(done){
+    const g=gcd(gotA,gotB)||1;
+    ch.innerHTML=`<span class="badge ${gotA+gotB===S.n?'ok':'no'}">합: ${gotA} + ${gotB} = ${gotA+gotB}${gotA+gotB===S.n?' (전체와 같음)':` (전체 ${S.n}보다 ${S.n-gotA-gotB} 적음)`}</span>
+      <span class="badge ok">비: ${gotA} : ${gotB} = ${gotA/g} : ${gotB/g}</span>`;
+  } else ch.innerHTML='';
+  const ex=$('#explain');
+  if(round===0) ex.textContent=`‘한 묶음 나누기’를 눌러 보세요. 한 번 누를 때마다 ${S.a}에게 ${S.p}${S.u}, ${S.b}에게 ${S.q}${S.u}씩 나누어 줘요.`;
+  else if(!done) ex.textContent=`${round}묶음을 나누었어요. 모두 몇 묶음이 나올지 예상해 보세요. (${S.n} ÷ ${k})`;
+  else if(rem===0) ex.textContent=`${S.n}${S.u}은(는) ${k}${S.u}씩 ${R}묶음이에요. ${S.a}는 묶음마다 ${S.p}${S.u}씩, 모두 ${S.p} × ${R} = ${gotA}${S.u}이고, 이것은 전체의 ${S.p}/${k}예요.`;
+  else { ex.className='note no'; ex.textContent=`${R}묶음을 나누고 ${rem}${S.u}이(가) 남았어요(점선). ${S.n}은(는) ${k}로 나누어떨어지지 않아서 자연수로 똑같이 비례배분할 수 없어요. 전체의 양이나 비를 바꾸면 어떻게 될지 생각해 보세요.`; return }
+  ex.className='note info';
+}
+function setPre(i){S={...PRE[i]};round=0;$('#cn').value=S.n;$('#cp').value=S.p;$('#cq').value=S.q;
+  $$('[data-pre]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.pre===i));render()}
+$$('[data-pre]').forEach(b=>b.onclick=()=>setPre(+b.dataset.pre));
+$('#apply-custom').onclick=()=>{
+  const n=Math.max(1,Math.min(120,+$('#cn').value||1)),p=Math.max(1,Math.min(12,+$('#cp').value||1)),q=Math.max(1,Math.min(12,+$('#cq').value||1));
+  S={n,p,q,a:'앞',b:'뒤',u:'개',thing:'물건'};round=0;$$('[data-pre]').forEach(b=>b.setAttribute('aria-pressed','false'));render()};
+$('#step').onclick=()=>{if(round<rounds()){round++;render()}};
+$('#all').onclick=()=>{round=rounds();render()};
+$('#reset').onclick=()=>{round=0;render()};
+
+// 1단계 예상
+$('#guess-btn').onclick=()=>{
+  const g=+$('#guess').value, m=$('#guess-msg');
+  setPre(0);
+  if(!$('#guess').value){m.className='note info';m.textContent='수를 넣고 눌러 주세요.';return}
+  if(g===9){m.className='note ok';m.textContent='9개라고 예상했어요. 아래에서 한 묶음씩 나누어 정말 그런지 확인해 보세요.'}
+  else if(Math.abs(g-15.75)<0.3||g===16||g===15){m.className='note info';m.textContent=`${g}개라고 예상했어요. 혹시 21 × 3/4로 계산했나요? 아래에서 직접 나누어 보고 비교해 보세요.`}
+  else {m.className='note info';m.textContent=`${g}개라고 예상했어요. 아래에서 한 묶음씩 나누어 확인해 보세요.`}
+};
+
+// 3단계
+$$('[data-say]').forEach(b=>b.onclick=()=>{
+  $$('[data-say]').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  const m=$('#say-msg'),k=b.dataset.say; m.hidden=false;
+  if(k==='b'){m.className='note ok';m.textContent='맞아요. 3 : 4는 7개 중 3개, 7개 중 4개라는 뜻이에요. 그래서 지호는 21 × 3/7 = 9개, 하은이는 21 × 4/7 = 12개예요.'}
+  else if(k==='a'){m.className='note no';m.textContent='21 × 3/4 = 15.75예요. 3/4는 하은이 몫에 대한 지호 몫의 비율이지, 전체 중 지호 몫의 비율이 아니에요. 전체는 3 + 4 = 7묶음이에요.'}
+  else {m.className='note no';m.textContent='반으로 나누는 것은 1 : 1로 나누는 방법이에요. 3 : 4로 나누려면 전체를 비의 합(7)으로 나누어 생각해야 해요.'}
+});
+
+// 4단계 적용
+const PROBS=[
+  {n:60,p:7,q:5,t:'학용품 60세트를 7 : 5로',u:'세트',th:'학용품'},
+  {n:70,p:2,q:5,t:'쌀 70 kg을 2 : 5로',u:'kg',th:'쌀'},
+  {n:72,p:5,q:7,t:'출구 티켓: 72를 5 : 7로',u:'',th:'수'}
+];
+$('#probs').innerHTML=PROBS.map((p,i)=>`<div class="prob"><div class="q">${p.t}</div>
+  <div class="row"><input type="number" id="pa${i}" aria-label="앞의 몫" inputmode="numeric"><span>${p.u}</span><span>,</span><input type="number" id="pb${i}" aria-label="뒤의 몫" inputmode="numeric"><span>${p.u}</span></div>
+  <div class="row"><button type="button" class="primary" data-c="${i}">검증하기</button><button type="button" data-v="${i}">시뮬레이터로 보기</button></div>
+  <p class="note" id="pm${i}" hidden></p></div>`).join('');
+$$('[data-v]').forEach(b=>b.onclick=()=>{const p=PROBS[+b.dataset.v];S={n:p.n,p:p.p,q:p.q,a:'앞',b:'뒤',u:p.u||'개',thing:p.th};round=0;
+  $('#cn').value=p.n;$('#cp').value=p.p;$('#cq').value=p.q;$$('[data-pre]').forEach(x=>x.setAttribute('aria-pressed','false'));render();$('#h2s').scrollIntoView({behavior:'smooth'})});
+$$('[data-c]').forEach(b=>b.onclick=()=>{
+  const i=+b.dataset.c,p=PROBS[i],x=+$('#pa'+i).value,y=+$('#pb'+i).value,m=$('#pm'+i); m.hidden=false;
+  if(!x||!y){m.className='note info';m.textContent='두 몫을 모두 넣어 주세요.';return}
+  const sumOk=x+y===p.n, g=gcd(x,y), ratioOk=x/g===p.p/gcd(p.p,p.q)&&y/g===p.q/gcd(p.p,p.q);
+  if(sumOk&&ratioOk){m.className='note ok';m.textContent=`합 ${x} + ${y} = ${p.n}, 비 ${x} : ${y} = ${x/g} : ${y/g}. 두 가지 모두 맞아 공정한 배분이에요.`}
+  else {m.className='note no';m.textContent=`합: ${x} + ${y} = ${x+y} ${sumOk?'(맞음)':`(전체 ${p.n}에서 벗어남)`} / 비: ${x} : ${y} = ${x/g} : ${y/g} ${ratioOk?'(맞음)':`(처음 비 ${p.p} : ${p.q}에서 벗어남)`}. 비의 합 ${p.p+p.q}로 전체를 나누어 다시 구해 보세요.`}
+});
+render();
+</script>
+</body>
+</html>

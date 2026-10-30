@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>비율이 같은 비 탐험기</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* 레이아웃: 한 줄기 학습 흐름(예상→조작→설명→적용)을 세로로 쌓고, 조작 칸만 넓게 2단 */
+:root{
+  --bg:#f3f6f4; --surface:#ffffff; --ink:#1d2733; --muted:#5a6672; --line:#d6dfda;
+  --front:#6b47d6; --front-soft:#ece6ff; --back:#d99a06; --back-soft:#fff3d1;
+  --ok:#1d8656; --ok-soft:#e1f4ea; --warn:#b4471a; --warn-soft:#fde9df; --btn:#1d2733; --btn-ink:#ffffff;
+  --display:"Jua","IBM Plex Sans KR",system-ui,sans-serif;
+  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121816; --surface:#1a221f; --ink:#e6ede9; --muted:#9eaba4; --line:#2d3833;
+  --front:#a78bff; --front-soft:#2b2445; --back:#f2c14e; --back-soft:#3a2f12;
+  --ok:#4cc38a; --ok-soft:#173327; --warn:#f08a5d; --warn-soft:#3b2116; --btn:#e6ede9; --btn-ink:#121816; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121816; --surface:#1a221f; --ink:#e6ede9; --muted:#9eaba4; --line:#2d3833;
+  --front:#a78bff; --front-soft:#2b2445; --back:#f2c14e; --back-soft:#3a2f12;
+  --ok:#4cc38a; --ok-soft:#173327; --warn:#f08a5d; --warn-soft:#3b2116; --btn:#e6ede9; --btn-ink:#121816; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:980px;margin:0 auto;display:grid;gap:18px}
+header{display:grid;gap:6px}
+.eyebrow{font-size:13px;letter-spacing:.04em;color:var(--muted)}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,5vw,40px);line-height:1.15;margin:0;text-wrap:balance}
+h1 .f{color:var(--front)} h1 .b{color:var(--back)}
+.goal{margin:0;color:var(--muted);max-width:62ch}
+.steps{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:4px 0 0}
+.steps li{font-size:13px;border:1px solid var(--line);border-radius:999px;padding:3px 12px;background:var(--surface)}
+.steps b{font-family:var(--display);font-weight:400;margin-right:4px}
+section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:14px;min-width:0}
+h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0;display:flex;gap:10px;align-items:center}
+h2 .n{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--bg);font-size:17px}
+p{margin:0}
+.muted{color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 14px;min-height:44px}
+button:hover{border-color:var(--ink)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--front);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.primary{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.label{font-size:13px;color:var(--muted);letter-spacing:.03em;min-width:64px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
+.panel{align-content:start}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+.panel{border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px;min-width:0}
+.ratio{font-family:var(--display);font-size:clamp(30px,6vw,44px);line-height:1;display:flex;align-items:baseline;gap:6px;font-variant-numeric:tabular-nums}
+.fr{color:var(--front)} .bk{color:var(--back)}
+.frac{display:inline-grid;text-align:center;font-family:var(--display);font-size:22px;line-height:1.1;vertical-align:middle;font-variant-numeric:tabular-nums}
+.frac span:first-child{border-bottom:2px solid currentColor;padding:0 4px}
+.cmp{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;text-align:center}
+.badge{display:inline-block;border-radius:999px;padding:4px 12px;font-size:14px;font-weight:700}
+.badge.ok{background:var(--ok-soft);color:var(--ok)} .badge.no{background:var(--warn-soft);color:var(--warn)}
+.beads{display:flex;flex-wrap:wrap;gap:10px}
+.group{display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px;border:1.5px dashed var(--line);border-radius:999px;align-items:center}
+.group.hl{border-color:var(--ink);border-style:solid}
+.dot{width:14px;height:14px;border-radius:50%}
+.dot.f{background:var(--front)} .dot.b{background:var(--back)}
+.nl{width:100%;overflow-x:auto}
+.nl svg{display:block;width:100%;min-width:320px;height:auto}
+.note{border-radius:10px;padding:10px 12px;font-size:15px}
+.note.ok{background:var(--ok-soft)} .note.no{background:var(--warn-soft)} .note.info{background:var(--front-soft)}
+.choices{display:flex;flex-wrap:wrap;gap:8px}
+.frame{font-size:18px;line-height:2.2}
+.slot{display:inline-flex;gap:6px;vertical-align:middle;flex-wrap:wrap}
+.slot button{min-height:38px;padding:4px 12px}
+input[type=number]{font:inherit;font-family:var(--display);font-size:24px;width:84px;padding:6px 8px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);text-align:center}
+.pair{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pair .c{font-family:var(--display);font-size:26px}
+footer{font-size:13px;color:var(--muted);text-align:center}
+details summary{cursor:pointer;font-weight:700}
+@media (prefers-reduced-motion:no-preference){.dot{transition:transform .25s}.group{animation:pop .3s ease-out}@keyframes pop{from{transform:scale(.92)}to{transform:none}}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a href="index.html" style="font-size:13px;color:var(--muted)">← 앱 목록</a>
+  <div class="eyebrow">수학 6-2 · 4. 비례식과 비례배분 · 2차시 비의 성질 · 나눔 장터 준비</div>
+  <h1>비율이 같은 비 <span class="f">탐</span><span class="b">험</span>기</h1>
+  <p class="goal">전항과 후항에 같은 수를 곱하거나 나누어 보고, 두 항은 변해도 비율은 그대로인지 그림과 이중 수직선으로 확인해요.</p>
+  <ol class="steps"><li><b>1</b>예상</li><li><b>2</b>조작·관찰</li><li><b>3</b>설명</li><li><b>4</b>적용</li></ol>
+</header>
+
+<section id="s1" aria-labelledby="h-s1">
+  <h2 id="h-s1"><span class="n">1</span>먼저 예상해요</h2>
+  <p>나눔 장터에서 구슬 팔찌를 만들어요. 팔찌 1개에 <b class="fr">보라색 구슬 2개</b>와 <b class="bk">노란색 구슬 5개</b>가 들어가요.
+  팔찌를 <b>3개</b> 만들면 보라 : 노랑은 <b>6 : 15</b>가 돼요. 비율은 어떻게 될까요?</p>
+  <div class="choices" role="group" aria-label="예상 고르기">
+    <button type="button" data-guess="up" id="g-up">2 : 5보다 커진다</button>
+    <button type="button" data-guess="same" id="g-same">2 : 5와 같다</button>
+    <button type="button" data-guess="down" id="g-down">2 : 5보다 작아진다</button>
+  </div>
+  <p class="muted" id="guess-msg">예상을 고른 다음, 아래 2단계에서 직접 확인해 보세요.</p>
+</section>
+
+<section id="s2" aria-labelledby="h-s2">
+  <h2 id="h-s2"><span class="n">2</span>조작하고 관찰해요</h2>
+  <div class="row" role="group" aria-label="상황 고르기">
+    <span class="label">상황</span>
+    <button type="button" data-sit="bracelet" aria-pressed="true" id="sit-b">구슬 팔찌 2 : 5</button>
+    <button type="button" data-sit="punch" aria-pressed="false" id="sit-p">과일 화채 18 : 12</button>
+  </div>
+  <div class="row" role="group" aria-label="계산 고르기">
+    <span class="label">두 항에</span>
+    <button type="button" data-op="mul" aria-pressed="true" id="op-mul">같은 수를 곱하기 ×</button>
+    <button type="button" data-op="div" aria-pressed="false" id="op-div">같은 수로 나누기 ÷</button>
+    <button type="button" data-op="add" aria-pressed="false" id="op-add">같은 수를 더하기 + (비교용)</button>
+  </div>
+  <div class="row" role="group" aria-label="수 고르기" id="k-row"></div>
+
+  <div class="grid2">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between">
+        <span class="label" id="pic-label">그림</span>
+        <span class="muted" style="font-size:14px" id="pic-cap"></span>
+      </div>
+      <div class="beads" id="beads" aria-live="polite"></div>
+    </div>
+    <div class="panel" aria-live="polite">
+      <span class="label">비와 비율 비교</span>
+      <div class="cmp">
+        <div><div class="muted" style="font-size:13px">처음 비</div><div class="ratio" style="justify-content:center"><span class="fr" id="a0"></span>:<span class="bk" id="b0"></span></div></div>
+        <div style="font-family:var(--display);font-size:20px" id="opmark"></div>
+        <div><div class="muted" style="font-size:13px">새로운 비</div><div class="ratio" style="justify-content:center"><span class="fr" id="a1"></span>:<span class="bk" id="b1"></span></div></div>
+      </div>
+      <div class="cmp">
+        <div id="r0"></div><div class="muted">비율</div><div id="r1"></div>
+      </div>
+      <div style="text-align:center"><span class="badge" id="verdict"></span></div>
+      <p class="note info" id="explain"></p>
+    </div>
+  </div>
+  <div class="panel"><span class="label">이중 수직선 (위: 전항, 아래: 후항)</span><div class="nl" id="nl" aria-label="이중 수직선"></div></div>
+</section>
+
+<section id="s3" aria-labelledby="h-s3">
+  <h2 id="h-s3"><span class="n">3</span>알게 된 점을 설명해요</h2>
+  <p class="muted">관찰한 내용에 맞게 빈칸을 골라 문장을 완성해요.</p>
+  <p class="frame">비의 전항과 후항에 0이 아닌 같은 수를
+    <span class="slot" role="group" aria-label="첫째 빈칸">
+      <button type="button" data-s1="a" aria-pressed="false">곱하거나 나누어도</button>
+      <button type="button" data-s1="b" aria-pressed="false">더해도</button>
+    </span>
+    비율은
+    <span class="slot" role="group" aria-label="둘째 빈칸">
+      <button type="button" data-s2="a" aria-pressed="false">같습니다</button>
+      <button type="button" data-s2="b" aria-pressed="false">달라집니다</button>
+    </span>.
+  </p>
+  <div class="row"><button type="button" class="primary" id="check-sent">확인하기</button></div>
+  <p class="note" id="sent-msg" hidden></p>
+  <details>
+    <summary>더 생각해 보기: 왜 ‘0이 아닌’ 수라고 할까요?</summary>
+    <p style="margin-top:8px">0을 곱하면 2 : 5가 0 : 0이 되어 두 양을 더 이상 비교할 수 없어요. 0으로 나누는 것은 계산할 수 없어요. 그래서 비의 성질에는 ‘0이 아닌 같은 수’라는 조건이 붙어요.</p>
+  </details>
+</section>
+
+<section id="s4" aria-labelledby="h-s4">
+  <h2 id="h-s4"><span class="n">4</span>적용해요</h2>
+  <p><b class="fr">20</b> : <b class="bk">12</b>와 비율이 같은 비를 두 가지 만들어 보세요. 하나는 곱해서, 하나는 나누어서 만들면 더 좋아요.</p>
+  <div class="row" style="gap:18px">
+    <div class="pair"><input type="number" id="x1" min="1" inputmode="numeric" aria-label="첫째 비의 전항"><span class="c">:</span><input type="number" id="y1" min="1" inputmode="numeric" aria-label="첫째 비의 후항"></div>
+    <div class="pair"><input type="number" id="x2" min="1" inputmode="numeric" aria-label="둘째 비의 전항"><span class="c">:</span><input type="number" id="y2" min="1" inputmode="numeric" aria-label="둘째 비의 후항"></div>
+    <button type="button" class="primary" id="check-apply">확인하기</button>
+  </div>
+  <div id="apply-msg" style="display:grid;gap:8px"></div>
+</section>
+
+<footer>학생 이름이나 답을 저장하지 않는 학습용 페이지예요. 수치는 연구회에서 직접 만든 예시예요.</footer>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b]}return a};
+const SIT={
+  bracelet:{a:2,b:5,unitF:'보라 구슬',unitB:'노란 구슬',item:'팔찌',cnt:'개'},
+  punch:{a:18,b:12,unitF:'수박 조각',unitB:'멜론 조각',item:'화채',cnt:'그릇'}
+};
+const st={sit:'bracelet',op:'mul',k:3};
+
+function kOptions(){
+  const s=SIT[st.sit];
+  if(st.op==='mul') return [2,3,4,5,6].map(k=>({k,ok:true}));
+  if(st.op==='add') return [1,2,3,4].map(k=>({k,ok:true}));
+  return [2,3,4,5,6].map(k=>({k,ok:s.a%k===0&&s.b%k===0}));
+}
+function renderK(){
+  const row=$('#k-row'); const sym={mul:'×',div:'÷',add:'+'}[st.op];
+  const opts=kOptions();
+  if(!opts.find(o=>o.k===st.k&&o.ok)) st.k=(opts.filter(o=>o.ok).pop()||opts[0]).k;
+  row.innerHTML='<span class="label">고른 수</span>'+opts.map(o=>
+    `<button type="button" data-k="${o.k}" aria-pressed="${o.k===st.k}" ${o.ok?'':'disabled title="두 항이 모두 나누어떨어지지 않아요"'}>${sym} ${o.k}</button>`).join('')
+    +(st.op==='div'?'<span class="muted" style="font-size:14px">흐린 수는 두 항이 나누어떨어지지 않아요</span>':'');
+  row.querySelectorAll('button').forEach(b=>b.onclick=()=>{st.k=+b.dataset.k;render()});
+}
+function fracHTML(n,d,cls){return `<span class="frac ${cls||''}"><span>${n}</span><span>${d}</span></span>`}
+function simp(n,d){const g=gcd(n,d);return [n/g,d/g]}
+
+function render(){
+  const s=SIT[st.sit];
+  $$('[data-sit]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.sit===st.sit));
+  $$('[data-op]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.op===st.op));
+  renderK();
+  const k=st.k;
+  let a1,b1;
+  if(st.op==='mul'){a1=s.a*k;b1=s.b*k}
+  else if(st.op==='div'){a1=s.a/k;b1=s.b/k}
+  else {a1=s.a+k;b1=s.b+k}
+  $('#a0').textContent=s.a;$('#b0').textContent=s.b;$('#a1').textContent=a1;$('#b1').textContent=b1;
+  $('#opmark').textContent={mul:'× '+k,div:'÷ '+k,add:'+ '+k}[st.op]+' →';
+  const [p0,q0]=simp(s.a,s.b),[p1,q1]=simp(a1,b1);
+  const same=p0===p1&&q0===q1;
+  $('#r0').innerHTML=fracHTML(s.a,s.b)+(p0!==s.a?` = ${fracHTML(p0,q0)}`:'');
+  $('#r1').innerHTML=fracHTML(a1,b1)+(p1!==a1?` = ${fracHTML(p1,q1)}`:'');
+  const v=$('#verdict'); v.className='badge '+(same?'ok':'no'); v.textContent=same?'비율이 같아요':'비율이 달라요';
+  const opword={mul:`곱했더니`,div:`나누었더니`,add:`더했더니`}[st.op];
+  $('#explain').textContent= same
+    ? `전항 ${s.a}과(와) 후항 ${s.b}에 똑같이 ${k}을(를) ${opword} 두 항은 ${a1} : ${b1}로 바뀌었지만, 약분하면 둘 다 ${p0}/${q0}이에요.`
+    : `두 항에 똑같이 ${k}을(를) 더했더니 비율이 ${p0}/${q0}에서 ${p1}/${q1}로 바뀌었어요. 더하기는 비율을 지켜 주지 않아요.`;
+  drawBeads(s,a1,b1); drawLine(s,a1,b1,same);
+}
+
+function dots(n,c){return Array.from({length:n},()=>`<span class="dot ${c}"></span>`).join('')}
+function drawBeads(s,a1,b1){
+  const box=$('#beads'),k=st.k; let html='',cap='';
+  if(st.op==='mul'){
+    for(let i=0;i<k;i++) html+=`<div class="group">${dots(s.a,'f')}${dots(s.b,'b')}</div>`;
+    cap=`${s.item} ${k}${s.cnt}: ${s.unitF} ${a1}, ${s.unitB} ${b1}`;
+  } else if(st.op==='div'){
+    for(let i=0;i<k;i++) html+=`<div class="group ${i===0?'hl':''}">${dots(s.a/k,'f')}${dots(s.b/k,'b')}</div>`;
+    cap=`전체를 똑같이 ${k}묶음으로 나누면 한 묶음(진한 테두리)은 ${a1} : ${b1}`;
+  } else {
+    html=`<div class="group">${dots(s.a,'f')}${dots(s.b,'b')}</div><div class="group hl">${dots(a1,'f')}${dots(b1,'b')}</div>`;
+    cap=`각각 ${st.k}개씩 더한 모습: 묶음의 모양(비율)이 달라져요`;
+  }
+  box.innerHTML=html; $('#pic-cap').textContent=cap;
+}
+
+function drawLine(s,a1,b1,same){
+  const W=640,H=150,L=40,R=W-30, y1=48,y2=112;
+  const css=getComputedStyle(document.documentElement);
+  const cF=css.getPropertyValue('--front').trim(),cB=css.getPropertyValue('--back').trim(),cI=css.getPropertyValue('--ink').trim(),cM=css.getPropertyValue('--muted').trim(),cL=css.getPropertyValue('--line').trim();
+  if(!same){ // 더하기: 두 수직선이 맞지 않음을 보여 줌
+    const maxU=Math.max(a1/s.a,b1/s.b,1)*1.05;
+    const xt=v=>L+(R-L)*(v/s.a)/maxU, xb=w=>L+(R-L)*(w/s.b)/maxU;
+    $('#nl').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="더하면 위아래 눈금이 어긋나요">
+      ${axis(y1,cF,'전항')}${axis(y2,cB,'후항')}
+      <line x1="${xt(s.a)}" y1="${y1}" x2="${xb(s.b)}" y2="${y2}" stroke="${cI}" stroke-dasharray="3 4" stroke-width="1"/>
+      ${pt(xt(s.a),y1,s.a,cF,true)}${pt(xb(s.b),y2,s.b,cB,false)}
+      <line x1="${xt(a1)}" y1="${y1}" x2="${xb(b1)}" y2="${y2}" stroke="${cI}" stroke-width="2"/>
+      ${pt(xt(a1),y1,a1,cF,true)}${pt(xb(b1),y2,b1,cB,false)}
+      <text x="${W/2}" y="${H-4}" text-anchor="middle" font-size="13" fill="${cM}">처음 비(점선)는 세로로 맞지만, 더한 비(실선)는 비스듬히 어긋나요</text></svg>`;
+    return;
+  }
+  const g=gcd(s.a,s.b), ua=s.a/g, ub=s.b/g;
+  const maxT=Math.max(s.a,a1), steps=maxT/ua;
+  const xt=v=>L+(R-L)*v/maxT, xb=v=>L+(R-L)*(v/ub*ua)/maxT;
+  let ticks='';
+  for(let i=0;i<=steps;i++){
+    const x=xt(i*ua);
+    ticks+=`<line x1="${x}" y1="${y1-6}" x2="${x}" y2="${y1+6}" stroke="${cL}" stroke-width="2"/><line x1="${x}" y1="${y2-6}" x2="${x}" y2="${y2+6}" stroke="${cL}" stroke-width="2"/>`;
+    if(steps<=12) ticks+=`<text x="${x}" y="${y1-12}" text-anchor="middle" font-size="12" fill="${cM}">${i*ua}</text><text x="${x}" y="${y2+24}" text-anchor="middle" font-size="12" fill="${cM}">${i*ub}</text>`;
+  }
+  const sym={mul:'×',div:'÷'}[st.op]+st.k;
+  const xa0=xt(s.a),xa1=xt(a1);
+  $('#nl').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="이중 수직선: ${s.a}:${s.b}와 ${a1}:${b1}">
+    ${axis(y1,cF,'전항')}${axis(y2,cB,'후항')}${ticks}
+    <line x1="${xa0}" y1="${y1}" x2="${xa0}" y2="${y2}" stroke="${cI}" stroke-width="1" stroke-dasharray="3 4"/>
+    <line x1="${xa1}" y1="${y1}" x2="${xa1}" y2="${y2}" stroke="${cI}" stroke-width="1.5"/>
+    ${pt(xa0,y1,'',cF)}${pt(xa1,y1,'',cF)}${pt(xa0,y2,'',cB)}${pt(xa1,y2,'',cB)}
+    <path d="M${xa0} ${y1-22} Q${(xa0+xa1)/2} ${y1-44} ${xa1} ${y1-22}" fill="none" stroke="${cI}" stroke-width="1.5"/>
+    <text x="${(xa0+xa1)/2}" y="${y1-36}" text-anchor="middle" font-size="14" font-weight="700" fill="${cI}">${sym}</text>
+    <path d="M${xa0} ${y2+30} Q${(xa0+xa1)/2} ${y2+48} ${xa1} ${y2+30}" fill="none" stroke="${cI}" stroke-width="1.5"/>
+    <text x="${(xa0+xa1)/2}" y="${H-2}" text-anchor="middle" font-size="14" font-weight="700" fill="${cI}">${sym}</text></svg>`;
+}
+// 더하기 그림용(위 함수 밖에서도 쓰도록)
+function axis(y,c,t){const L=40,R=610;return `<line x1="${L}" y1="${y}" x2="${R+10}" y2="${y}" stroke="${c}" stroke-width="3"/><text x="2" y="${y+5}" font-size="13" fill="${c}" font-weight="700">${t}</text>`}
+function pt(x,y,lab,c,top){return `<circle cx="${x}" cy="${y}" r="7" fill="${c}"/>`+(lab!==''?`<text x="${x}" y="${top?y-14:y+26}" text-anchor="middle" font-size="13" font-weight="700" fill="${c}">${lab}</text>`:'')}
+
+$$('[data-sit]').forEach(b=>b.onclick=()=>{st.sit=b.dataset.sit; st.op=(st.sit==='punch')?'div':'mul'; st.k=(st.sit==='punch')?6:3; render()});
+$$('[data-op]').forEach(b=>b.onclick=()=>{st.op=b.dataset.op; render()});
+
+// 1단계 예상
+$$('[data-guess]').forEach(b=>b.onclick=()=>{
+  $$('[data-guess]').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  const ok=b.dataset.guess==='same';
+  const m=$('#guess-msg'); m.className='note '+(ok?'ok':'info');
+  m.textContent=ok?'좋아요! 정말 같은지 아래 그림과 수직선으로 확인해 보세요.':'예상을 기억해 두고, 아래에서 팔찌 ×3을 직접 확인해 보세요.';
+  st.sit='bracelet';st.op='mul';st.k=3;render();
+});
+
+// 3단계 설명
+const ans={s1:null,s2:null};
+$$('[data-s1]').forEach(b=>b.onclick=()=>{ans.s1=b.dataset.s1;$$('[data-s1]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
+$$('[data-s2]').forEach(b=>b.onclick=()=>{ans.s2=b.dataset.s2;$$('[data-s2]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
+$('#check-sent').onclick=()=>{
+  const m=$('#sent-msg'); m.hidden=false;
+  if(!ans.s1||!ans.s2){m.className='note info';m.textContent='두 빈칸을 모두 골라 주세요.';return}
+  if(ans.s1==='a'&&ans.s2==='a'){m.className='note ok';m.textContent='맞아요. 이것이 비의 성질이에요. 2단계에서 다른 수로도 몇 번 더 확인해 보세요.'}
+  else if(ans.s1==='b'&&ans.s2==='a'){m.className='note no';m.textContent='2단계에서 ‘같은 수를 더하기’를 골라 확인해 보세요. 비율이 바뀌어요.'}
+  else if(ans.s1==='b'&&ans.s2==='b'){m.className='note no';m.textContent='더하면 비율이 달라지는 것은 맞아요. 하지만 비의 성질은 곱하기와 나누기에 대한 성질이에요. 첫째 빈칸을 다시 골라 보세요.'}
+  else {m.className='note no';m.textContent='곱하거나 나누었을 때 비율 배지가 어떻게 나왔는지 2단계에서 다시 확인해 보세요.'}
+};
+
+// 4단계 적용: 20:12
+$('#check-apply').onclick=()=>{
+  const out=$('#apply-msg'); out.innerHTML=''; const seen=new Set(); let good=0;
+  [['#x1','#y1'],['#x2','#y2']].forEach(([xi,yi],i)=>{
+    const x=+$(xi).value,y=+$(yi).value; const p=document.createElement('p');
+    if(!x||!y||x<0||y<0){p.className='note info';p.textContent=`${i+1}번: 두 칸에 0보다 큰 수를 넣어 주세요.`;out.append(p);return}
+    const ok=x*12===y*20, key=x+':'+y;
+    if(ok&&(x===20&&y===12)){p.className='note info';p.textContent=`${i+1}번: 20 : 12는 처음 비와 똑같아요. 다른 비를 만들어 보세요.`}
+    else if(ok&&seen.has(key)){p.className='note info';p.textContent=`${i+1}번: 앞과 같은 비예요. 다른 비를 만들어 보세요.`}
+    else if(ok){ good++; seen.add(key);
+      let how=''; if(x%20===0) how=`전항과 후항에 ${x/20}을(를) 곱했어요.`; else if(20%x===0) how=`전항과 후항을 ${20/x}(으)로 나누었어요.`; else how=`20 : 12를 5 : 3으로 줄인 뒤 ${x/5}배 했어요.`;
+      p.className='note ok';p.textContent=`${i+1}번: ${x} : ${y} 맞아요. ${how} 비율은 ${x===5&&y===3?'5/3':x+'/'+y+' = 5/3'}이에요.`}
+    else {const [a,b]=simp(x,y);p.className='note no';p.textContent=`${i+1}번: ${x} : ${y}의 비율은 ${a}/${b}이고, 20 : 12의 비율은 5/3이에요. 전항과 후항에 같은 수를 곱하거나 나누었는지 확인해 보세요.`}
+    out.append(p);
+  });
+  if(good===2){const p=document.createElement('p');p.className='note ok';p.textContent='두 비 모두 성공! 나눔 장터에서 재료를 늘리거나 줄여도 같은 맛, 같은 모양을 지킬 수 있겠죠?';out.append(p)}
+};
+render();
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',render);
+new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+</script>
+</body>
+</html>

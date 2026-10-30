@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>비례식 저울</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* 레이아웃: 위에서 아래로 예상→조작(비례식 편집기 + 저울)→설명→적용, 조작 칸은 편집기와 저울을 나란히 */
+:root{
+  --bg:#f3f6f4; --surface:#ffffff; --ink:#1d2733; --muted:#5a6672; --line:#d6dfda;
+  --front:#6b47d6; --front-soft:#ece6ff; --back:#d99a06; --back-soft:#fff3d1;
+  --ok:#1d8656; --ok-soft:#e1f4ea; --warn:#b4471a; --warn-soft:#fde9df; --btn:#1d2733; --btn-ink:#ffffff;
+  --display:"Jua","IBM Plex Sans KR",system-ui,sans-serif;
+  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121816; --surface:#1a221f; --ink:#e6ede9; --muted:#9eaba4; --line:#2d3833;
+  --front:#a78bff; --front-soft:#2b2445; --back:#f2c14e; --back-soft:#3a2f12;
+  --ok:#4cc38a; --ok-soft:#173327; --warn:#f08a5d; --warn-soft:#3b2116; --btn:#e6ede9; --btn-ink:#121816; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121816; --surface:#1a221f; --ink:#e6ede9; --muted:#9eaba4; --line:#2d3833;
+  --front:#a78bff; --front-soft:#2b2445; --back:#f2c14e; --back-soft:#3a2f12;
+  --ok:#4cc38a; --ok-soft:#173327; --warn:#f08a5d; --warn-soft:#3b2116; --btn:#e6ede9; --btn-ink:#121816; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:980px;margin:0 auto;display:grid;gap:18px}
+header{display:grid;gap:6px}
+.eyebrow{font-size:13px;letter-spacing:.04em;color:var(--muted)}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,5vw,40px);line-height:1.15;margin:0;text-wrap:balance}
+.goal{margin:0;color:var(--muted);max-width:62ch}
+.steps{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:4px 0 0}
+.steps li{font-size:13px;border:1px solid var(--line);border-radius:999px;padding:3px 12px;background:var(--surface)}
+.steps b{font-family:var(--display);font-weight:400;margin-right:4px}
+section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:14px;min-width:0}
+h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0;display:flex;gap:10px;align-items:center}
+h2 .n{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--bg);font-size:17px}
+p{margin:0}
+.muted{color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 14px;min-height:44px}
+button:hover{border-color:var(--ink)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--front);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.primary{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.label{font-size:13px;color:var(--muted);letter-spacing:.03em}
+.fr{color:var(--front)} .bk{color:var(--back)}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+.panel{border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:12px;min-width:0;align-content:start}
+/* 비례식 편집기 */
+.eq{display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:nowrap}
+.term{display:grid;justify-items:center;gap:4px}
+.term .v{font-family:var(--display);font-size:clamp(30px,7vw,46px);line-height:1;min-width:1.6em;text-align:center;border-radius:12px;padding:8px 6px;border:3px solid;font-variant-numeric:tabular-nums}
+.term.out .v{border-color:var(--front);background:var(--front-soft)}
+.term.in .v{border-color:var(--back);background:var(--back-soft)}
+.term .tag{font-size:12px;font-weight:700}
+.term.out .tag{color:var(--front)} .term.in .tag{color:var(--back)}
+.term .st{display:flex;gap:4px}
+.term .st button{min-height:34px;min-width:34px;padding:0;font-size:18px;line-height:1}
+.colon,.eqs{font-family:var(--display);font-size:clamp(26px,6vw,38px)}
+.bal svg{display:block;width:100%;height:auto}
+.prod{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.prod div{border-radius:10px;padding:8px 10px;text-align:center}
+.prod .o{background:var(--front-soft)} .prod .i{background:var(--back-soft)}
+.prod b{font-family:var(--display);font-weight:400;font-size:24px;display:block;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;border-radius:999px;padding:4px 12px;font-size:14px;font-weight:700}
+.badge.ok{background:var(--ok-soft);color:var(--ok)} .badge.no{background:var(--warn-soft);color:var(--warn)}
+.note{border-radius:10px;padding:10px 12px;font-size:15px}
+.note.ok{background:var(--ok-soft)} .note.no{background:var(--warn-soft)} .note.info{background:var(--front-soft)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;min-width:420px}
+th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:center}
+th{font-size:13px;color:var(--muted);font-weight:500}
+td.ex{font-size:12px;color:var(--muted)}
+.choices{display:grid;gap:8px}
+.choices button{text-align:left}
+.prob{display:grid;gap:8px;border:1px solid var(--line);border-radius:12px;padding:12px}
+.prob .q{font-family:var(--display);font-size:24px;font-variant-numeric:tabular-nums}
+input[type=number]{font:inherit;font-family:var(--display);font-size:22px;width:90px;padding:6px 8px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);text-align:center}
+.probs{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+footer{font-size:13px;color:var(--muted);text-align:center}
+@media (max-width:480px){.eq{gap:2px}.term .v{font-size:26px;min-width:1.25em;padding:6px 3px;border-width:2px}.term .st button{min-width:28px;min-height:32px;font-size:16px}.colon,.eqs{font-size:22px}section{padding:14px}.panel{padding:10px}}
+@media (prefers-reduced-motion:no-preference){#beam{transition:transform .5s cubic-bezier(.3,1.4,.6,1)}.pan{transition:transform .5s cubic-bezier(.3,1.4,.6,1)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a href="index.html" style="font-size:13px;color:var(--muted)">← 앱 목록</a>
+  <div class="eyebrow">수학 6-2 · 4. 비례식과 비례배분 · 5차시 비례식의 성질 · 나눔 장터 준비</div>
+  <h1>비례식 저울</h1>
+  <p class="goal">비례식의 바깥쪽 두 수(<b class="fr">외항</b>)의 곱과 안쪽 두 수(<b class="bk">내항</b>)의 곱을 저울에 올려 보고, 어떤 비례식에서도 저울이 수평이 되는지 확인해요.</p>
+  <ol class="steps"><li><b>1</b>예상</li><li><b>2</b>조작·관찰</li><li><b>3</b>설명</li><li><b>4</b>적용</li></ol>
+</header>
+
+<section aria-labelledby="h1s">
+  <h2 id="h1s"><span class="n">1</span>먼저 예상해요</h2>
+  <p>나눔 장터 쿠키 부스에서는 <b>밀가루 3컵으로 쿠키 8개</b>를 만들어요. 밀가루 9컵이면 쿠키 24개를 만들 수 있으니 <b>3 : 8 = 9 : 24</b>예요.
+  외항의 곱(<span class="fr">3 × 24</span>)과 내항의 곱(<span class="bk">8 × 9</span>) 중 어느 쪽이 더 클까요?</p>
+  <div class="row" role="group" aria-label="예상 고르기">
+    <button type="button" data-guess="out" id="g1">외항의 곱이 더 크다</button>
+    <button type="button" data-guess="same" id="g2">두 곱이 같다</button>
+    <button type="button" data-guess="in" id="g3">내항의 곱이 더 크다</button>
+  </div>
+  <p class="muted" id="guess-msg">예상을 고른 다음, 아래 저울로 확인해 보세요.</p>
+</section>
+
+<section aria-labelledby="h2s">
+  <h2 id="h2s"><span class="n">2</span>저울로 조작하고 관찰해요</h2>
+  <div class="row" role="group" aria-label="예시 고르기">
+    <span class="label">예시</span>
+    <button type="button" data-ex="0" aria-pressed="true">쿠키 3 : 8 = 9 : 24</button>
+    <button type="button" data-ex="1" aria-pressed="false">4 : 7 = 12 : 21</button>
+    <button type="button" data-ex="2" aria-pressed="false">안내판 4 : 3 = 80 : 60</button>
+    <button type="button" data-ex="3" aria-pressed="false">4 : 6 = 8 : 10 ?</button>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <span class="label">비례식 (− + 로 네 수를 바꿀 수 있어요)</span>
+      <div class="eq" id="eq"></div>
+      <div class="prod">
+        <div class="o"><span class="label fr">외항의 곱</span><b id="po"></b></div>
+        <div class="i"><span class="label bk">내항의 곱</span><b id="pi"></b></div>
+      </div>
+      <div class="prod">
+        <div style="border:1px solid var(--line)"><span class="label">앞의 비의 비율</span><b id="r1"></b></div>
+        <div style="border:1px solid var(--line)"><span class="label">뒤의 비의 비율</span><b id="r2"></b></div>
+      </div>
+    </div>
+    <div class="panel bal" aria-live="polite">
+      <div id="balance"></div>
+      <div style="text-align:center"><span class="badge" id="verdict"></span></div>
+      <p class="note info" id="explain"></p>
+      <div class="row"><button type="button" class="primary" id="rec">이 비례식 기록하기</button><span class="muted" style="font-size:14px">여러 식을 기록해 공통점을 찾아요</span></div>
+    </div>
+  </div>
+  <div class="tbl">
+    <table aria-label="관찰 기록">
+      <thead><tr><th>식</th><th>외항의 곱</th><th>내항의 곱</th><th>두 곱</th><th>두 비의 비율</th></tr></thead>
+      <tbody id="log"></tbody>
+    </table>
+  </div>
+</section>
+
+<section aria-labelledby="h3s">
+  <h2 id="h3s"><span class="n">3</span>알게 된 점을 설명해요</h2>
+  <p class="muted">기록한 식들을 보고, 가장 알맞은 문장을 골라요.</p>
+  <div class="choices" role="group" aria-label="문장 고르기">
+    <button type="button" data-say="a">비례식에서 외항의 합과 내항의 합은 같다.</button>
+    <button type="button" data-say="b">비례식에서 외항의 곱과 내항의 곱은 같다.</button>
+    <button type="button" data-say="c">어떤 두 비를 등호로 이어도 외항의 곱과 내항의 곱은 같다.</button>
+  </div>
+  <p class="note" id="say-msg" hidden></p>
+</section>
+
+<section aria-labelledby="h4s">
+  <h2 id="h4s"><span class="n">4</span>적용해요: □의 값 구하기</h2>
+  <p class="muted">비례식의 성질로 곱셈식을 세워 □를 구하고, 답을 넣으면 저울로 확인해 줘요.</p>
+  <div class="probs" id="probs"></div>
+</section>
+
+<footer>학생 이름이나 답을 저장하지 않는 학습용 페이지예요. 수치는 연구회에서 직접 만든 예시예요.</footer>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b]}return a};
+const EX=[[3,8,9,24],[4,7,12,21],[4,3,80,60],[4,6,8,10]];
+let t=[...EX[0]];
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function fr(n,d){const g=gcd(n,d);return g>1?`${n}/${d} = ${n/g}/${d/g}`:`${n}/${d}`}
+function renderEq(){
+  const names=['외항','내항','내항','외항'], cls=['out','in','in','out'];
+  const cell=i=>`<div class="term ${cls[i]}"><span class="tag">${names[i]}</span><span class="v" id="v${i}">${t[i]}</span>
+    <span class="st"><button type="button" aria-label="${names[i]} ${t[i]} 줄이기" data-i="${i}" data-d="-1">−</button><button type="button" aria-label="${names[i]} ${t[i]} 늘리기" data-i="${i}" data-d="1">+</button></span></div>`;
+  $('#eq').innerHTML=cell(0)+'<span class="colon">:</span>'+cell(1)+'<span class="eqs">=</span>'+cell(2)+'<span class="colon">:</span>'+cell(3);
+  $$('#eq [data-i]').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;t[i]=Math.max(1,Math.min(99,t[i]+ +b.dataset.d));update()});
+}
+function drawBalance(L,R){
+  const W=420,H=240,cx=W/2,py=70,arm=150;
+  const diff=R-L, m=Math.max(L,R,1);
+  const ang=Math.max(-16,Math.min(16,diff/m*40));
+  const rad=ang*Math.PI/180;
+  const lx=cx-arm*Math.cos(rad), ly=py-arm*Math.sin(rad), rx=cx+arm*Math.cos(rad), ry=py+arm*Math.sin(rad);
+  const ink=css('--ink'),mu=css('--muted'),f=css('--front'),fs=css('--front-soft'),b=css('--back'),bs=css('--back-soft'),line=css('--line');
+  const pan=(x,y,c,cs,lab,val)=>`<g class="pan"><line x1="${x}" y1="${y}" x2="${x-38}" y2="${y+70}" stroke="${mu}" stroke-width="1.5"/><line x1="${x}" y1="${y}" x2="${x+38}" y2="${y+70}" stroke="${mu}" stroke-width="1.5"/>
+    <path d="M${x-58} ${y+70} h116 a58 22 0 0 1 -116 0z" fill="${cs}" stroke="${c}" stroke-width="2.5"/>
+    <text x="${x}" y="${y+64}" text-anchor="middle" font-size="22" font-family="Jua, sans-serif" fill="${c}">${val}</text>
+    <text x="${x}" y="${y+112}" text-anchor="middle" font-size="13" fill="${c}" font-weight="700">${lab}</text></g>`;
+  $('#balance').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="외항의 곱 ${L}, 내항의 곱 ${R}">
+    <path d="M${cx-46} ${H-6} L${cx} ${py+6} L${cx+46} ${H-6}z" fill="${line}"/>
+    <line x1="${lx}" y1="${ly}" x2="${rx}" y2="${ry}" stroke="${ink}" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${py}" r="8" fill="${ink}"/>
+    ${pan(lx,ly,f,fs,'외항의 곱',L)}${pan(rx,ry,b,bs,'내항의 곱',R)}</svg>`;
+}
+function update(){
+  renderEq();
+  const [a,b,c,d]=t, L=a*d, R=b*c, eq=L===R;
+  $('#po').textContent=`${a} × ${d} = ${L}`; $('#pi').textContent=`${b} × ${c} = ${R}`;
+  $('#r1').textContent=fr(a,b); $('#r2').textContent=fr(c,d);
+  drawBalance(L,R);
+  const v=$('#verdict'); v.className='badge '+(eq?'ok':'no'); v.textContent=eq?'수평! 두 곱이 같아요':'기울었어요! 두 곱이 달라요';
+  $('#explain').textContent=eq
+    ? `두 비 ${a} : ${b}, ${c} : ${d}는 비율이 같아서 비례식이에요. 외항의 곱(${L})과 내항의 곱(${R})도 같아요.`
+    : `두 비 ${a} : ${b}, ${c} : ${d}는 비율이 달라서 비례식이 아니에요. 외항의 곱(${L})과 내항의 곱(${R})도 달라요. 네 수 중 하나를 바꿔 수평을 만들어 보세요.`;
+  $$('[data-ex]').forEach(x=>x.setAttribute('aria-pressed',EX[+x.dataset.ex].join()===t.join()));
+}
+$$('[data-ex]').forEach(b=>b.onclick=()=>{t=[...EX[+b.dataset.ex]];update()});
+
+// 기록 표 (예시 1줄을 미리 보여 줌)
+const logged=new Set();
+function addRow(arr,example){
+  const [a,b,c,d]=arr, key=arr.join(); if(logged.has(key)) return false; logged.add(key);
+  const L=a*d,R=b*c,[p,q]=[a/gcd(a,b),b/gcd(a,b)],[r,s]=[c/gcd(c,d),d/gcd(c,d)];
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${a} : ${b} = ${c} : ${d}${example?'<br><span class="label">(예시)</span>':''}</td><td class="fr">${a}×${d}=${L}</td><td class="bk">${b}×${c}=${R}</td>
+    <td><span class="badge ${L===R?'ok':'no'}">${L===R?'같음':'다름'}</span></td><td>${p}/${q} ${p===r&&q===s?'=':'≠'} ${r}/${s}</td>`;
+  $('#log').append(tr); return true;
+}
+addRow([3,8,9,24],true);
+$('#rec').onclick=()=>{ if(!addRow([...t],false)){ $('#explain').textContent='이미 기록한 식이에요. 다른 예시를 고르거나 수를 바꿔 보세요.'} };
+
+// 1단계
+$$('[data-guess]').forEach(b=>b.onclick=()=>{
+  $$('[data-guess]').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  t=[...EX[0]];update();
+  const m=$('#guess-msg'), ok=b.dataset.guess==='same';
+  m.className='note '+(ok?'ok':'info');
+  m.textContent=ok?'예상대로인지 저울을 보세요. 3 × 24 = 72, 8 × 9 = 72로 수평이에요. 다른 비례식에서도 그런지 확인해 봐요.':'저울을 보세요. 3 × 24 = 72, 8 × 9 = 72로 수평이에요. 다른 비례식에서도 그런지 확인해 봐요.';
+});
+
+// 3단계
+$$('[data-say]').forEach(b=>b.onclick=()=>{
+  $$('[data-say]').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  const m=$('#say-msg'); m.hidden=false; const k=b.dataset.say;
+  if(k==='b'){m.className='note ok';m.textContent='맞아요. 이것이 비례식의 성질이에요. 기록 표의 수평인 식들이 모두 그랬지요?'}
+  else if(k==='a'){m.className='note no';m.textContent='3 : 8 = 9 : 24에서 외항의 합은 3 + 24 = 27, 내항의 합은 8 + 9 = 17이에요. 합이 아니라 무엇이 같았는지 표를 다시 보세요.'}
+  else {m.className='note no';m.textContent='‘4 : 6 = 8 : 10 ?’ 예시를 저울에 올려 보세요. 비율이 같지 않은 두 비는 비례식이 아니고, 두 곱도 달라요.'}
+});
+
+// 4단계: □ 구하기 (위치: 0~3 중 모르는 항)
+const PROBS=[
+  {t:[3,8,15,null],ctx2:'밀가루 15컵으로 만들 수 있는 쿠키 수'},
+  {t:[4,3,null,60],ctx2:'세로가 60 cm인 안내판의 가로(cm)'},
+  {t:[3,8,null,40],ctx2:'쿠키 40개를 만드는 데 필요한 밀가루(컵)'},
+  {t:[2,3,10,null],ctx2:'연습 문제'}
+];
+function probHTML(p,i){
+  const s=p.t.map(v=>v===null?'□':v);
+  return `<div class="prob"><span class="label">${p.ctx2}</span><div class="q">${s[0]} : ${s[1]} = ${s[2]} : ${s[3]}</div>
+    <div class="row"><label for="ans${i}" class="muted">□ =</label><input type="number" id="ans${i}" min="1" inputmode="numeric"><button type="button" class="primary" data-p="${i}">확인</button><button type="button" data-h="${i}">곱셈식 힌트</button></div>
+    <p class="note" id="pm${i}" hidden></p></div>`;
+}
+$('#probs').innerHTML=PROBS.map(probHTML).join('');
+function solve(p){const [a,b,c,d]=p.t; if(d===null) return b*c/a; if(c===null) return a*d/b; if(b===null) return a*d/c; return b*c/d}
+function eqText(p){const [a,b,c,d]=p.t.map(v=>v===null?'□':v); return `외항의 곱 = 내항의 곱 → ${a} × ${d} = ${b} × ${c}`}
+$$('[data-h]').forEach(b=>b.onclick=()=>{const i=+b.dataset.h,m=$('#pm'+i);m.hidden=false;m.className='note info';m.textContent=eqText(PROBS[i])});
+$$('[data-p]').forEach(b=>b.onclick=()=>{
+  const i=+b.dataset.p,p=PROBS[i],x=+$('#ans'+i).value,m=$('#pm'+i); m.hidden=false;
+  if(!x){m.className='note info';m.textContent='□에 들어갈 수를 넣어 주세요.';return}
+  const full=p.t.map(v=>v===null?x:v); const [a,bb,c,d]=full; const L=a*d,R=bb*c;
+  t=[...full]; update();
+  if(L===R){m.className='note ok';m.textContent=`맞아요! 외항의 곱 ${a} × ${d} = ${L}, 내항의 곱 ${bb} × ${c} = ${R}. 두 곱이 같아서 위 저울도 수평이 되었어요.`}
+  else {m.className='note no';m.textContent=`외항의 곱 ${a} × ${d} = ${L}, 내항의 곱 ${bb} × ${c} = ${R}. 두 곱이 달라요. 위 저울이 ${L>R?'외항':'내항'} 쪽으로 기울었어요. 곱셈식 힌트를 참고해 다시 구해 보세요.`}
+});
+update();
+new MutationObserver(update).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',update);
+</script>
+</body>
+</html>
